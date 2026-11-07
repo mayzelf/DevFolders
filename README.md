@@ -16,6 +16,9 @@ Right-click a folder and open the **DevFolders** menu:
   badge every project inside it.
 - **Reset to default**: restores the folder exactly as it was.
 
+Folders are also colored to match their icon, so projects stand apart even in the details view
+where icons are small. The picker has a **Color the folder** option to keep the standard yellow.
+
 ## Requirements
 
 - Windows 10 or 11

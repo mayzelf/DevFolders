@@ -23,9 +23,17 @@ public static class FolderIcons
 
         StateStore.Update(state =>
         {
-            bool known = state.Folders.TryGetValue(folder, out var existing);
             var ini = File.Exists(iniPath) ? IniDocument.Load(iniPath) : new IniDocument();
-            var record = existing ?? NewRecord(ini, createdDesktopIni: !File.Exists(iniPath));
+            bool isNew = false;
+            if (!state.Folders.TryGetValue(folder, out var record))
+            {
+                record = AdoptUntracked(folder, ini);
+                if (record == null)
+                {
+                    record = NewRecord(ini, createdDesktopIni: !File.Exists(iniPath));
+                    isNew = true;
+                }
+            }
 
             foreach (string key in IconKeys)
             {
@@ -35,7 +43,7 @@ public static class FolderIcons
             ini.Set(Section, IconResourceKey, $"{iconFile},0");
             WriteHidden(iniPath, ini);
 
-            if (!known)
+            if (isNew)
             {
                 record.SetReadOnly = MarkReadOnly(folder);
                 record.GitExcludeEntry = GitExclude.Add(folder, DesktopIni);
@@ -56,7 +64,13 @@ public static class FolderIcons
         folder = AppPaths.NormalizeFolder(folder);
         StateStore.Update(state =>
         {
-            if (state.Folders.Remove(folder, out var record))
+            string iniPath = Path.Combine(folder, DesktopIni);
+            if (!state.Folders.Remove(folder, out var record) && File.Exists(iniPath))
+            {
+                record = AdoptUntracked(folder, IniDocument.Load(iniPath));
+            }
+
+            if (record != null)
             {
                 Restore(folder, record);
                 DeleteIconIfUnused(state, record.IconFile);
@@ -102,7 +116,7 @@ public static class FolderIcons
                 ini.Set(Section, key, value);
             }
 
-            if (record.CreatedDesktopIni && !ini.HasValues)
+            if (record.CreatedDesktopIni && ini.ValueCount == 0)
             {
                 File.SetAttributes(iniPath, FileAttributes.Normal);
                 File.Delete(iniPath);
@@ -136,6 +150,28 @@ public static class FolderIcons
         }
 
         return record;
+    }
+
+    /// <summary>
+    /// Builds a record for a folder that points at one of our icons but has no entry in the state
+    /// file, so it can still be updated and reset cleanly.
+    /// </summary>
+    private static FolderRecord? AdoptUntracked(string folder, IniDocument ini)
+    {
+        string? resource = ini.Get(Section, IconResourceKey);
+        int separator = resource?.LastIndexOf(',') ?? -1;
+        if (resource == null || separator < 0 || !resource.StartsWith(AppPaths.IconsDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return new FolderRecord
+        {
+            IconFile = resource[..separator],
+            CreatedDesktopIni = ini.ValueCount == 1,
+            SetReadOnly = true,
+            GitExcludeEntry = GitExclude.Find(folder, DesktopIni),
+        };
     }
 
     private static string StoreIcon(byte[] icon)

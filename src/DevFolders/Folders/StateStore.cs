@@ -54,7 +54,9 @@ public static class StateStore
         var state = Load();
         change(state);
         Directory.CreateDirectory(AppPaths.DataDirectory);
-        File.WriteAllText(AppPaths.StateFile, JsonSerializer.Serialize(state, JsonOptions));
+        string temporary = AppPaths.StateFile + ".tmp";
+        File.WriteAllText(temporary, JsonSerializer.Serialize(state, JsonOptions));
+        File.Move(temporary, AppPaths.StateFile, overwrite: true);
     }
 
     private static AppState Load()

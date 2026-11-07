@@ -69,14 +69,14 @@ internal static class Commands
             return Show(new IconPickerWindow(folder, candidates));
         }
 
-        var icon = FolderIconRenderer.CreateIcon(FolderStyle.Standard, new ImageBadge(candidates[0].Artwork));
+        var icon = FolderIconRenderer.CreateIcon(FolderIcon.WithBadge(new ImageBadge(candidates[0].Artwork)));
         FolderIcons.Apply(folder, FolderKind.Project, icon);
         return false;
     }
 
     private static bool MarkAsDevFolder(string folder)
     {
-        FolderIcons.Apply(folder, FolderKind.DevFolder, FolderIconRenderer.CreateIcon(FolderStyle.DevFolder, null));
+        FolderIcons.Apply(folder, FolderKind.DevFolder, FolderIconRenderer.CreateIcon(FolderIcon.DevFolder));
 
         var projects = ProjectScanner.FindProjects(folder);
         return projects.Count > 0 && Show(new DevFolderWindow(folder, projects));

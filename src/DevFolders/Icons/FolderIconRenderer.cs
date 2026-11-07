@@ -12,8 +12,18 @@ public enum FolderStyle
     DevFolder,
 }
 
+public sealed record FolderIcon(FolderStyle Style, Badge? Badge = null, Color? Tint = null)
+{
+    public static FolderIcon Plain { get; } = new(FolderStyle.Standard);
+
+    public static FolderIcon DevFolder { get; } = new(FolderStyle.DevFolder);
+
+    public static FolderIcon WithBadge(Badge? badge, bool tintFolder = true) =>
+        new(FolderStyle.Standard, badge, tintFolder && badge != null ? FolderTint.From(badge) : null);
+}
+
 /// <summary>
-/// Draws folder icons: the Windows folder (or a blue variant with a code mark for dev folders),
+/// Draws folder icons: the Windows folder, recolored to a tint or to the blue dev folder look,
 /// optionally with a badge in the bottom-right corner.
 /// </summary>
 public static class FolderIconRenderer
@@ -23,28 +33,28 @@ public static class FolderIconRenderer
     private const double DevFolderHueShift = 170;
     private static readonly Color BadgeOutline = Color.FromArgb(0x30, 0, 0, 0);
     private static readonly Geometry CodeMark = Geometry.Parse("M 0.41,0.50 L 0.33,0.60 L 0.41,0.70 M 0.59,0.50 L 0.67,0.60 L 0.59,0.70 M 0.54,0.47 L 0.46,0.73");
-    private static readonly ConcurrentDictionary<(FolderStyle, int), BitmapSource> BaseCache = new();
+    private static readonly ConcurrentDictionary<(FolderStyle, Color?, int), BitmapSource> BaseCache = new();
 
-    public static byte[] CreateIcon(FolderStyle style, Badge? badge) =>
-        IcoWriter.Write(IconSizes.Select(size => Render(style, badge, size)).ToList());
+    public static byte[] CreateIcon(FolderIcon icon) =>
+        IcoWriter.Write(IconSizes.Select(size => Render(icon, size)).ToList());
 
-    public static BitmapSource Render(FolderStyle style, Badge? badge, int size)
+    public static BitmapSource Render(FolderIcon icon, int size)
     {
         var visual = new DrawingVisual();
         RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.HighQuality);
 
         using (var context = visual.RenderOpen())
         {
-            context.DrawImage(FolderBase(style, size), new Rect(0, 0, size, size));
+            context.DrawImage(FolderBase(icon.Style, icon.Tint, size), new Rect(0, 0, size, size));
 
-            if (style == FolderStyle.DevFolder && size >= 24)
+            if (icon.Style == FolderStyle.DevFolder && size >= 24)
             {
                 DrawCodeMark(context, size);
             }
 
-            if (badge != null)
+            if (icon.Badge != null)
             {
-                DrawBadge(context, badge, size);
+                DrawBadge(context, icon.Badge, size);
             }
         }
 
@@ -54,11 +64,24 @@ public static class FolderIconRenderer
         return bitmap;
     }
 
-    private static BitmapSource FolderBase(FolderStyle style, int size) =>
-        BaseCache.GetOrAdd((style, size), key =>
+    private static BitmapSource FolderBase(FolderStyle style, Color? tint, int size) =>
+        BaseCache.GetOrAdd((style, tint, size), _ =>
         {
-            var folder = ShellIcons.Folder(key.Item2) ?? FallbackFolder(key.Item2);
-            return key.Item1 == FolderStyle.DevFolder ? ShiftHue(folder, DevFolderHueShift) : folder;
+            var folder = ShellIcons.Folder(size) ?? FallbackFolder(size);
+            if (style == FolderStyle.DevFolder)
+            {
+                return Recolor(folder, (h, s, l) => ((h + DevFolderHueShift) % 360, s, l * 0.88));
+            }
+
+            if (tint is { } color)
+            {
+                var (hue, saturation, lightness) = ColorMath.ToHsl(color.R, color.G, color.B);
+                double saturationScale = Math.Clamp(saturation / 0.7, 0, 1);
+                double lightnessScale = 0.78 + 0.3 * lightness;
+                return Recolor(folder, (_, s, l) => (hue, s * saturationScale, Math.Min(1, l * lightnessScale)));
+            }
+
+            return folder;
         });
 
     private static void DrawCodeMark(DrawingContext context, int size)
@@ -124,7 +147,7 @@ public static class FolderIconRenderer
         return new Rect(area.X + (area.Width - width) / 2, area.Y + (area.Height - height) / 2, width, height);
     }
 
-    private static BitmapSource ShiftHue(BitmapSource source, double degrees)
+    private static BitmapSource Recolor(BitmapSource source, Func<double, double, double, (double Hue, double Saturation, double Lightness)> map)
     {
         var converted = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
         int width = converted.PixelWidth;
@@ -141,7 +164,8 @@ public static class FolderIconRenderer
             }
 
             var (hue, saturation, lightness) = ColorMath.ToHsl(pixels[i + 2], pixels[i + 1], pixels[i]);
-            var (r, g, b) = ColorMath.FromHsl((hue + degrees) % 360, saturation, lightness * 0.88);
+            var mapped = map(hue, saturation, lightness);
+            var (r, g, b) = ColorMath.FromHsl(mapped.Hue, mapped.Saturation, mapped.Lightness);
             pixels[i + 2] = r;
             pixels[i + 1] = g;
             pixels[i] = b;

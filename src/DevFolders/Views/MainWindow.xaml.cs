@@ -15,7 +15,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Icon = AppIcon.Window;
-        Logo.Source = FolderIconRenderer.Render(FolderStyle.DevFolder, null, 96);
+        Logo.Source = FolderIconRenderer.Render(FolderIcon.DevFolder, 96);
         Refresh();
     }
 

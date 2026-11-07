@@ -4,6 +4,7 @@ namespace DevFolders.Shell;
 
 internal static class NativeMethods
 {
+    public const uint SHCNE_UPDATEDIR = 0x00001000;
     public const uint SHCNE_UPDATEITEM = 0x00002000;
     public const uint SHCNE_ASSOCCHANGED = 0x08000000;
     public const uint SHCNF_IDLIST = 0x0000;

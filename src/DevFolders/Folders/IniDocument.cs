@@ -13,7 +13,7 @@ internal sealed class IniDocument
 
     public IniDocument(IEnumerable<string>? lines = null) => _lines = lines?.ToList() ?? [];
 
-    public bool HasValues => _lines.Any(IsValueLine);
+    public int ValueCount => _lines.Count(IsValueLine);
 
     public static IniDocument Load(string path) => new(File.ReadAllLines(path));
 

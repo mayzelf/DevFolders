@@ -88,6 +88,8 @@
                     <Image x:Name="SmallPreview" Width="16" Height="16" RenderOptions.BitmapScalingMode="NearestNeighbor" />
                     <TextBlock x:Name="SmallPreviewName" Margin="6,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
+                <CheckBox x:Name="TintCheck" Content="Color the folder" IsChecked="True" Margin="0,20,0,0"
+                          Checked="OnTintChanged" Unchecked="OnTintChanged" />
             </StackPanel>
         </Border>
 

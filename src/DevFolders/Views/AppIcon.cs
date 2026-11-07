@@ -7,5 +7,5 @@ internal static class AppIcon
 {
     private static ImageSource? _window;
 
-    public static ImageSource Window => _window ??= FolderIconRenderer.Render(FolderStyle.DevFolder, null, 64);
+    public static ImageSource Window => _window ??= FolderIconRenderer.Render(FolderIcon.DevFolder, 64);
 }

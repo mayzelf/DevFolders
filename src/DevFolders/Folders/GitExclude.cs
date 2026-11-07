@@ -8,16 +8,15 @@ namespace DevFolders.Folders;
 /// </summary>
 internal static class GitExclude
 {
+    /// <summary>Adds the entry and returns it, or returns null when it was already excluded or there is no repository.</summary>
     public static string? Add(string folder, string fileName)
     {
-        if (FindRepository(folder) is not (string root, string gitDirectory))
+        if (Locate(folder, fileName) is not (string entry, string excludeFile))
         {
             return null;
         }
 
-        string entry = "/" + Path.GetRelativePath(root, Path.Combine(folder, fileName)).Replace('\\', '/');
-        string excludeFile = Path.Combine(gitDirectory, "info", "exclude");
-        var lines = File.Exists(excludeFile) ? File.ReadAllLines(excludeFile).ToList() : [];
+        var lines = ReadLines(excludeFile);
         if (lines.Contains(entry))
         {
             return null;
@@ -29,28 +28,26 @@ internal static class GitExclude
         return entry;
     }
 
+    public static string? Find(string folder, string fileName) =>
+        Locate(folder, fileName) is (string entry, string excludeFile) && ReadLines(excludeFile).Contains(entry) ? entry : null;
+
     public static void Remove(string folder, string entry)
     {
-        if (FindRepository(folder) is not (_, string gitDirectory))
+        if (Locate(folder, "") is (_, string excludeFile) && File.Exists(excludeFile))
         {
-            return;
-        }
-
-        string excludeFile = Path.Combine(gitDirectory, "info", "exclude");
-        if (File.Exists(excludeFile))
-        {
-            File.WriteAllLines(excludeFile, File.ReadAllLines(excludeFile).Where(line => line != entry));
+            File.WriteAllLines(excludeFile, ReadLines(excludeFile).Where(line => line != entry));
         }
     }
 
-    private static (string Root, string GitDirectory)? FindRepository(string folder)
+    private static (string Entry, string ExcludeFile)? Locate(string folder, string fileName)
     {
         for (var directory = new DirectoryInfo(folder); directory != null; directory = directory.Parent)
         {
             string git = Path.Combine(directory.FullName, ".git");
             if (Directory.Exists(git))
             {
-                return (directory.FullName, git);
+                string entry = "/" + Path.GetRelativePath(directory.FullName, Path.Combine(folder, fileName)).Replace('\\', '/');
+                return (entry, Path.Combine(git, "info", "exclude"));
             }
 
             if (File.Exists(git))
@@ -61,4 +58,6 @@ internal static class GitExclude
 
         return null;
     }
+
+    private static List<string> ReadLines(string file) => File.Exists(file) ? File.ReadAllLines(file).ToList() : [];
 }

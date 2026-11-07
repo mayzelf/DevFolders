@@ -16,7 +16,7 @@ public sealed class ProjectRow : INotifyPropertyChanged
         Entry = entry;
         Name = Path.GetFileName(entry.Folder);
         Detail = entry.Icon?.RelativePath ?? "No icon found";
-        Preview = FolderIconRenderer.Render(FolderStyle.Standard, entry.Icon is { } icon ? new ImageBadge(icon.Artwork) : null, 64);
+        Preview = FolderIconRenderer.Render(FolderIcon.WithBadge(entry.Icon is { } icon ? new ImageBadge(icon.Artwork) : null), 64);
         _isChecked = HasIcon;
     }
 
@@ -55,7 +55,7 @@ public partial class DevFolderWindow : Window
         InitializeComponent();
         Icon = AppIcon.Window;
         HeaderText.Text = $"{Path.GetFileName(folder)} is now a dev folder";
-        FolderPreview.Source = FolderIconRenderer.Render(FolderStyle.DevFolder, null, 128);
+        FolderPreview.Source = FolderIconRenderer.Render(FolderIcon.DevFolder, 128);
 
         _rows = projects.Select(project => new ProjectRow(project)).ToList();
         _rows.ForEach(row => row.PropertyChanged += (_, _) => UpdateApplyButton());
@@ -74,7 +74,7 @@ public partial class DevFolderWindow : Window
     {
         foreach (var row in _rows.Where(row => row is { IsChecked: true, Entry.Icon: not null }))
         {
-            var icon = FolderIconRenderer.CreateIcon(FolderStyle.Standard, new ImageBadge(row.Entry.Icon!.Artwork));
+            var icon = FolderIconRenderer.CreateIcon(FolderIcon.WithBadge(new ImageBadge(row.Entry.Icon!.Artwork)));
             FolderIcons.Apply(row.Entry.Folder, FolderKind.Project, icon);
         }
 

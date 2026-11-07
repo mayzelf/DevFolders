@@ -81,6 +81,16 @@ public partial class IconPickerWindow : Window
 
     private Color SelectedColor => BadgeColors[Math.Max(0, ColorList.SelectedIndex)];
 
+    private FolderIcon CurrentIcon => FolderIcon.WithBadge(_badge, TintCheck.IsChecked == true);
+
+    private void OnTintChanged(object sender, RoutedEventArgs e)
+    {
+        if (IsLoaded)
+        {
+            UpdatePreview();
+        }
+    }
+
     private void OnFoundSelected(object sender, SelectionChangedEventArgs e)
     {
         if (FoundList.SelectedItem is FoundIcon item)
@@ -212,7 +222,7 @@ public partial class IconPickerWindow : Window
             return;
         }
 
-        FolderIcons.Apply(_folder, FolderKind.Project, FolderIconRenderer.CreateIcon(FolderStyle.Standard, _badge));
+        FolderIcons.Apply(_folder, FolderKind.Project, FolderIconRenderer.CreateIcon(CurrentIcon));
         Close();
     }
 
@@ -226,10 +236,10 @@ public partial class IconPickerWindow : Window
     private void UpdatePreview()
     {
         double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
-        LargePreview.Source = FolderIconRenderer.Render(FolderStyle.Standard, _badge, 256);
-        SmallPreview.Source = FolderIconRenderer.Render(FolderStyle.Standard, _badge, (int)Math.Round(16 * scale));
+        LargePreview.Source = FolderIconRenderer.Render(CurrentIcon, 256);
+        SmallPreview.Source = FolderIconRenderer.Render(CurrentIcon, (int)Math.Round(16 * scale));
     }
 
     private static FoundIcon CreateFoundIcon(string label, BadgeArtwork artwork) =>
-        new(label, artwork, FolderIconRenderer.Render(FolderStyle.Standard, new ImageBadge(artwork), 128));
+        new(label, artwork, FolderIconRenderer.Render(FolderIcon.WithBadge(new ImageBadge(artwork)), 128));
 }
