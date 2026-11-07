@@ -1,69 +1,60 @@
+<img src="docs/images/logo.png" width="72" alt="">
+
 # DevFolders
 
-Folder icons for developers on Windows. DevFolders puts a project's own icon (its favicon, app
-icon or logo) in the corner of its folder in Explorer, so projects are recognizable at a glance.
+Project icons for Windows Explorer folders. DevFolders finds a project's favicon, app icon or
+logo, puts it in the corner of the folder and colors the folder to match.
 
-## Features
+![Project folders with their icons](docs/images/explorer-icons.png)
 
-Right-click a folder and open the **DevFolders** menu:
+Still recognizable in the details view:
 
-- **Use project icon**: finds the project's icon (`favicon.ico`, `public/favicon.png`, `icon.svg`,
-  `app.ico`, an `.exe` named after the folder, ...). One match is applied right away; if there
-  are several, a picker opens.
-- **Choose icon...**: pick from the icons found in the folder, search the
-  [Iconify](https://iconify.design) library, or browse for any image, `.ico` or `.exe`.
-- **Mark as dev folder**: gives a folder that holds projects its own blue look and offers to
-  badge every project inside it.
-- **Reset to default**: restores the folder exactly as it was.
-
-Folders are also colored to match their icon, so projects stand apart even in the details view
-where icons are small. The picker has a **Color the folder** option to keep the standard yellow.
-
-## Requirements
-
-- Windows 10 or 11
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) to build
+![Details view](docs/images/explorer-details.png)
 
 ## Install
+
+Download `DevFolders-Setup-<version>.exe` from the
+[latest release](../../releases/latest) and run it. It installs for the current user, no admin
+rights needed, and adds DevFolders to the folder right-click menu.
+
+On Windows 11 the menu is under **Show more options** (or Shift + right-click).
+
+<details>
+<summary>Build from source</summary>
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```powershell
 dotnet publish src/DevFolders -c Release -o "$env:LOCALAPPDATA\Programs\DevFolders"
 & "$env:LOCALAPPDATA\Programs\DevFolders\DevFolders.exe" install
 ```
 
-`install` adds the menu for the current user only (no admin rights needed). Run
-`DevFolders.exe` without arguments to see customized folders and to add or remove the menu.
+</details>
 
-On Windows 11 the menu appears under **Show more options** (or Shift + right-click).
+## Usage
+
+Right-click a folder → **DevFolders**:
+
+| Command | What it does |
+| --- | --- |
+| Use project icon | Applies the icon found in the folder, or opens the picker if there are several |
+| Choose icon... | Pick a found icon, search the [Iconify](https://iconify.design) library, or browse for a file |
+| Mark as dev folder | Gives a folder of projects its own look and badges the projects inside |
+| Reset to default | Restores the folder exactly as it was |
+
+| Icon picker | Mark as dev folder |
+| --- | --- |
+| ![Icon picker](docs/images/picker.png) | ![Dev folder dialog](docs/images/dev-folder.png) |
+
+![A dev folder next to regular folders](docs/images/explorer-root.png)
 
 ## Uninstall
 
-```powershell
-& "$env:LOCALAPPDATA\Programs\DevFolders\DevFolders.exe" uninstall
-```
+Uninstall DevFolders from **Settings → Apps**. This removes the menu and resets every folder
+it changed.
 
-This removes the menu and resets every folder DevFolders changed.
+## Releasing
 
-## How it works
-
-Icons are applied the way Windows supports natively: DevFolders renders a multi-size `.ico`
-(the Windows folder plus the badge) and points the folder's `desktop.ini` at it. Nothing has to
-keep running for the icons to show, and they survive restarts.
-
-- Generated icons and the icon library cache live in `%LOCALAPPDATA%\DevFolders`.
-- Every change is recorded in `%LOCALAPPDATA%\DevFolders\state.json`, so a reset puts back any
-  `desktop.ini` settings and folder attributes that were there before.
-- Inside git repositories, `desktop.ini` is added to `.git/info/exclude`, which keeps it out of
-  `git status` without touching the project's `.gitignore`.
-- Folders that need admin rights (such as games under `Program Files`) trigger a UAC prompt.
-
-## Command line
-
-```
-DevFolders.exe apply <folder>       Use project icon
-DevFolders.exe choose <folder>      Open the icon picker
-DevFolders.exe mark-dev <folder>    Mark as dev folder
-DevFolders.exe reset <folder>       Reset to default
-DevFolders.exe install              Add the Explorer menu
-DevFolders.exe uninstall            Remove the menu and reset all folders
-```
+Bump `<Version>` in [`src/DevFolders/DevFolders.csproj`](src/DevFolders/DevFolders.csproj) and
+push to `main`. The [release workflow](.github/workflows/release.yml) builds the installer and
+publishes it as a GitHub release `v<version>`.

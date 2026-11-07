@@ -39,7 +39,7 @@ public sealed class BadgeArtwork
 
     public int LargestSize { get; }
 
-    public bool IsUsableAsBadge => LargestSize >= 16 && AspectRatio is >= 0.8 and <= 1.25;
+    public bool IsUsableAsBadge => _vector != null || (LargestSize >= 16 && AspectRatio is >= 0.8 and <= 1.25);
 
     public static BadgeArtwork? TryLoad(string path)
     {

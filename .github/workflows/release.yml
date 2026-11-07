@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [src/DevFolders/DevFolders.csproj]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content src/DevFolders/DevFolders.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          "version=$version" >> $env:GITHUB_OUTPUT
+          gh release view "v$version" *> $null
+          $exists = $LASTEXITCODE -eq 0
+          "exists=$("$exists".ToLower())" >> $env:GITHUB_OUTPUT
+          $global:LASTEXITCODE = 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.version.outputs.exists == 'false'
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish
+        if: steps.version.outputs.exists == 'false'
+        run: dotnet publish src/DevFolders -c Release -r win-x64 --self-contained -o publish
+
+      - name: Build installer
+        if: steps.version.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=${{ steps.version.outputs.version }} installer\DevFolders.iss
+
+      - name: Create release
+        if: steps.version.outputs.exists == 'false'
+        run: gh release create "v${{ steps.version.outputs.version }}" "installer/Output/DevFolders-Setup-${{ steps.version.outputs.version }}.exe" --title "DevFolders ${{ steps.version.outputs.version }}" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
